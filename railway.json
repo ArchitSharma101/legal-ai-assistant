@@ -4,5 +4,11 @@
   },
   "deploy": {
     "startCommand": "npm run start"
+  },
+  "environments": {
+    "default": {
+      "buildCommand": "npm run build",
+      "startCommand": "npm run start"
+    }
   }
 }

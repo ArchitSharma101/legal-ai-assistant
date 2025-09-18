@@ -1,14 +1,9 @@
 {
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r requirements.txt && cd frontend && npm install --legacy-peer-deps && npm run build"
   },
   "deploy": {
-    "startCommand": "npm run start"
-  },
-  "environments": {
-    "default": {
-      "buildCommand": "npm run build",
-      "startCommand": "npm run start"
-    }
+    "startCommand": "uvicorn backend.server:app --host 0.0.0.0 --port $PORT"
   }
 }

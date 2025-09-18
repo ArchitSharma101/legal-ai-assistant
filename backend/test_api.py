@@ -4,7 +4,7 @@ import asyncio
 import os
 
 # Use environment variable or fallback to localhost
-BASE_URL = os.getenv("API_URL", "http://localhost:8000/api")
+BASE_URL = os.getenv("API_URL", "https://legal-ai-assistant-production-457f.up.railway.app")
 
 @pytest.mark.asyncio
 async def test_document_lifecycle():

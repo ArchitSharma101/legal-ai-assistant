@@ -3,11 +3,13 @@ import os
 import time
 import json
 
-BASE_URL = "http://localhost:8000/api"
+# Load backend URL from environment variable or use localhost by default
+BASE_URL = os.getenv("API_URL", "http://localhost:8000/api")
 
 def test_document_lifecycle():
     """Test the full document lifecycle using synchronous HTTP requests"""
     print("Starting document lifecycle test...")
+    print(f"Using API base URL: {BASE_URL}")
 
     # Test 1: Check if API is running
     try:
@@ -136,6 +138,7 @@ def test_document_lifecycle():
 
     print("All tests completed successfully!")
     return True
+
 
 if __name__ == "__main__":
     success = test_document_lifecycle()

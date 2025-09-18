@@ -3,7 +3,8 @@ import httpx
 import asyncio
 import os
 
-BASE_URL = "http://localhost:8000/api"
+# Use environment variable or fallback to localhost
+BASE_URL = os.getenv("API_URL", "http://localhost:8000/api")
 
 @pytest.mark.asyncio
 async def test_document_lifecycle():
@@ -34,7 +35,6 @@ async def test_document_lifecycle():
 
         # Analyze document
         response = await client.post(f"{BASE_URL}/documents/{document_id}/analyze")
-        # Analysis may take time or fail if AI service is not configured, so check for 200 or 500
         assert response.status_code in (200, 500)
 
         # Ask a question

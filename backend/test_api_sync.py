@@ -4,7 +4,7 @@ import time
 import json
 
 # Load backend URL from environment variable or use localhost by default
-BASE_URL = os.getenv("API_URL", "http://localhost:8000/api")
+BASE_URL = os.getenv("API_URL", "https://legal-ai-assistant-production-457f.up.railway.app")
 
 def test_document_lifecycle():
     """Test the full document lifecycle using synchronous HTTP requests"""

@@ -67,8 +67,6 @@ const ExportReport = ({ isOpen, onClose, document, analysis }) => {
         description: `Report exported as ${exportFormat.toUpperCase()}`,
         variant: "success"
       });
-
-      onClose();
     } catch (error) {
       console.error('Export failed:', error);
       toast({
@@ -78,6 +76,7 @@ const ExportReport = ({ isOpen, onClose, document, analysis }) => {
       });
     } finally {
       setIsExporting(false);
+      onClose();
     }
   };
 

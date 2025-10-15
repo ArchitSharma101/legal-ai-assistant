@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException, Form, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -783,6 +783,321 @@ async def get_chat_history(document_id: str, session_id: Optional[str] = None):
     except Exception as e:
         logging.error(f"Get chat history error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve chat history")
+
+# Export report endpoint
+@api_router.post("/documents/{document_id}/export")
+async def export_document(document_id: str, export_data: dict):
+    """Export document analysis as PDF or Word document"""
+    try:
+        # Get document from database
+        sync_client = pymongo.MongoClient(os.environ.get('MONGO_URL', 'mongodb://localhost:27017'))
+        sync_db = sync_client[os.environ.get('DB_NAME', 'legal_docs')]
+        document = sync_db.documents.find_one({"id": document_id})
+        if not document:
+            sync_client.close()
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Check if analysis is completed
+        if document.get('analysis_status') != 'completed':
+            sync_client.close()
+            raise HTTPException(status_code=400, detail="Document analysis not completed")
+
+        # Get export parameters
+        format_type = export_data.get('format', 'pdf')
+        sections = export_data.get('sections', {})
+
+        # Prepare export content
+        export_content = f"""LEGAL DOCUMENT ANALYSIS REPORT
+
+DOCUMENT INFORMATION
+===================
+Document Name: {document['filename']}
+Analysis Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+Document ID: {document_id}
+
+"""
+
+        # Add sections based on user selection
+        if sections.get('summary', True):
+            export_content += f"""
+EXECUTIVE SUMMARY
+=================
+{document.get('summary', 'No summary available')}
+
+"""
+
+        if sections.get('clauses', True):
+            export_content += f"""
+KEY CLAUSES ANALYSIS
+====================
+"""
+            key_clauses = document.get('key_clauses', [])
+            for i, clause in enumerate(key_clauses, 1):
+                export_content += f"""
+{i}. {clause.get('reference', 'N/A')}
+   Explanation: {clause.get('explanation', 'N/A')}
+   Legal Implications: {clause.get('implications', 'N/A')}
+   Business Impact: {clause.get('impact', 'N/A')}
+   Potential Concerns: {clause.get('concerns', 'N/A')}
+
+"""
+
+        if sections.get('risks', True):
+            export_content += f"""
+RISK ASSESSMENT
+===============
+{document.get('risk_assessment', 'No risk assessment available')}
+
+"""
+
+        if sections.get('qa', True):
+            # Get Q&A history
+            qa_messages = list(sync_db.chat_messages.find({"document_id": document_id}).sort("timestamp", 1))
+            if qa_messages:
+                export_content += f"""
+Q&A HISTORY
+===========
+"""
+                for msg in qa_messages:
+                    export_content += f"""
+Question: {msg.get('question', 'N/A')}
+Answer: {msg.get('answer', 'N/A')}
+Timestamp: {msg.get('timestamp', 'N/A')}
+
+"""
+
+        sync_client.close()
+
+        # Clean the AI response content to remove artifacts
+        def clean_ai_response(text):
+            if not text:
+                return text
+            # Remove various AI artifacts and formatting
+            text = text.replace('**', '')
+            text = text.replace('*', '')
+            text = text.replace('```', '')
+            text = text.replace('`', '')
+            text = text.replace('###', '')
+            text = text.replace('##', '')
+            text = text.replace('#', '')
+            text = text.replace('•', '')
+            text = text.replace('·', '')
+            text = text.replace('▪', '')
+            text = text.replace('◦', '')
+            # Remove markdown-style bold and italic
+            text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+            text = re.sub(r'\*(.*?)\*', r'\1', text)
+            text = re.sub(r'_(.*?)_', r'\1', text)
+            text = re.sub(r'__(.*?)__', r'\1', text)
+            # Remove headers
+            text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+            # Clean up excessive whitespace
+            text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple newlines to double
+            text = re.sub(r'\s+', ' ', text)  # Multiple spaces to single
+            text = text.strip()
+            return text
+
+        # Apply cleaning to all sections
+        summary = clean_ai_response(document.get('summary', ''))
+        risk_assessment = clean_ai_response(document.get('risk_assessment', ''))
+
+        # Also clean key clauses
+        key_clauses = document.get('key_clauses', [])
+        for clause in key_clauses:
+            for key in clause:
+                if isinstance(clause[key], str):
+                    clause[key] = clean_ai_response(clause[key])
+
+        # Generate file content based on format
+        if format_type == 'pdf':
+            # For PDF, create a formatted document with color coding for risk levels
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.colors import red, orange, green
+            from io import BytesIO
+
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+
+            # Create custom styles for risk levels
+            high_risk_style = ParagraphStyle(
+                'HighRisk',
+                parent=styles['Normal'],
+                textColor=red,
+                fontSize=12,
+                spaceAfter=12
+            )
+            medium_risk_style = ParagraphStyle(
+                'MediumRisk',
+                parent=styles['Normal'],
+                textColor=orange,
+                fontSize=12,
+                spaceAfter=12
+            )
+            low_risk_style = ParagraphStyle(
+                'LowRisk',
+                parent=styles['Normal'],
+                textColor=green,
+                fontSize=12,
+                spaceAfter=12
+            )
+
+            story = []
+
+            # Title
+            story.append(Paragraph("LEGAL DOCUMENT ANALYSIS REPORT", styles['Title']))
+            story.append(Spacer(1, 24))
+
+            # Document Information
+            story.append(Paragraph("DOCUMENT INFORMATION", styles['Heading2']))
+            story.append(Paragraph(f"Document Name: {document['filename']}", styles['Normal']))
+            story.append(Paragraph(f"Analysis Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}", styles['Normal']))
+            story.append(Paragraph(f"Document ID: {document_id}", styles['Normal']))
+            story.append(Spacer(1, 12))
+
+            # Add sections
+            if sections.get('summary', True):
+                story.append(Paragraph("EXECUTIVE SUMMARY", styles['Heading2']))
+                story.append(Paragraph(summary, styles['Normal']))
+                story.append(Spacer(1, 12))
+
+            if sections.get('clauses', True):
+                story.append(Paragraph("KEY CLAUSES ANALYSIS", styles['Heading2']))
+                key_clauses = document.get('key_clauses', [])
+                for i, clause in enumerate(key_clauses, 1):
+                    story.append(Paragraph(f"{i}. {clause.get('reference', 'N/A')}", styles['Heading3']))
+                    story.append(Paragraph(f"Explanation: {clause.get('explanation', 'N/A')}", styles['Normal']))
+                    story.append(Paragraph(f"Legal Implications: {clause.get('implications', 'N/A')}", styles['Normal']))
+                    story.append(Paragraph(f"Business Impact: {clause.get('impact', 'N/A')}", styles['Normal']))
+                    story.append(Paragraph(f"Potential Concerns: {clause.get('concerns', 'N/A')}", styles['Normal']))
+                    story.append(Spacer(1, 6))
+
+            if sections.get('risks', True):
+                story.append(Paragraph("RISK ASSESSMENT", styles['Heading2']))
+
+                # Parse and color-code risk sections
+                risk_lines = risk_assessment.split('\n')
+
+                for line in risk_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    # Determine color based on risk level keywords
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        story.append(Paragraph(line, high_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        story.append(Paragraph(line, medium_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        story.append(Paragraph(line, low_risk_style))
+                    else:
+                        story.append(Paragraph(line, styles['Normal']))
+
+                story.append(Spacer(1, 12))
+
+            if sections.get('qa', True):
+                qa_messages = list(sync_db.chat_messages.find({"document_id": document_id}).sort("timestamp", 1))
+                if qa_messages:
+                    story.append(Paragraph("Q&A HISTORY", styles['Heading2']))
+                    for msg in qa_messages:
+                        story.append(Paragraph(f"Question: {msg.get('question', 'N/A')}", styles['Normal']))
+                        story.append(Paragraph(f"Answer: {msg.get('answer', 'N/A')}", styles['Normal']))
+                        story.append(Spacer(1, 6))
+
+            doc.build(story)
+            pdf_content = buffer.getvalue()
+            buffer.close()
+
+            return Response(
+                content=pdf_content,
+                media_type='application/pdf',
+                headers={"Content-Disposition": f"attachment; filename={document['filename'].replace('.pdf', '')}_analysis.pdf"}
+            )
+
+        elif format_type == 'word':
+            # For Word document, create a formatted DOCX with color coding
+            from docx import Document
+            from docx.shared import RGBColor
+            from io import BytesIO
+
+            doc = Document()
+            doc.add_heading('Legal Document Analysis Report', 0)
+
+            # Add document info
+            doc.add_heading('Document Information', level=1)
+            doc.add_paragraph(f"Document Name: {document['filename']}")
+            doc.add_paragraph(f"Analysis Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            doc.add_paragraph(f"Document ID: {document_id}")
+
+            # Add sections
+            if sections.get('summary', True):
+                doc.add_heading('Executive Summary', level=1)
+                doc.add_paragraph(summary)
+
+            if sections.get('clauses', True):
+                doc.add_heading('Key Clauses Analysis', level=1)
+                key_clauses = document.get('key_clauses', [])
+                for i, clause in enumerate(key_clauses, 1):
+                    doc.add_heading(f'{i}. {clause.get("reference", "N/A")}', level=2)
+                    doc.add_paragraph(f"Explanation: {clause.get('explanation', 'N/A')}")
+                    doc.add_paragraph(f"Legal Implications: {clause.get('implications', 'N/A')}")
+                    doc.add_paragraph(f"Business Impact: {clause.get('impact', 'N/A')}")
+                    doc.add_paragraph(f"Potential Concerns: {clause.get('concerns', 'N/A')}")
+
+            if sections.get('risks', True):
+                doc.add_heading('Risk Assessment', level=1)
+
+                # Parse and color-code risk sections line by line
+                risk_lines = risk_assessment.split('\n')
+
+                for line in risk_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    p = doc.add_paragraph()
+
+                    # Determine color based on risk level keywords
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p.add_run(line)
+
+            if sections.get('qa', True):
+                doc.add_heading('Q&A History', level=1)
+                qa_messages = list(sync_db.chat_messages.find({"document_id": document_id}).sort("timestamp", 1))
+                for msg in qa_messages:
+                    doc.add_paragraph(f"Question: {msg.get('question', 'N/A')}")
+                    doc.add_paragraph(f"Answer: {msg.get('answer', 'N/A')}")
+
+            buffer = BytesIO()
+            doc.save(buffer)
+            docx_content = buffer.getvalue()
+            buffer.close()
+
+            return Response(
+                content=docx_content,
+                media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                headers={"Content-Disposition": f"attachment; filename={document['filename'].replace('.docx', '').replace('.pdf', '')}_analysis.docx"}
+            )
+
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported export format")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Export error: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 # Then include the router in the main app
 app.include_router(api_router)

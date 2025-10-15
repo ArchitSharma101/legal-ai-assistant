@@ -1,0 +1,276 @@
+.comparison-selection {
+  min-height: 400px;
+}
+
+.selection-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.selection-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.selection-header p {
+  color: #4a5568;
+  font-size: 1rem;
+}
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.comparison-doc-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.comparison-doc-card:hover {
+  transform: translateY(-2px);
+}
+
+.comparison-doc-card.selected {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.comparison-doc-card .doc-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.comparison-doc-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+
+.comparison-doc-card .doc-date {
+  color: #718096;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #667eea;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+}
+
+.selection-indicator.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.comparison-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.comparison-results {
+  min-height: 500px;
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.results-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 1rem;
+}
+
+.compared-docs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.doc-label {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-label.doc1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.doc-label.doc2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.vs {
+  font-weight: 700;
+  color: #4a5568;
+  font-size: 1rem;
+}
+
+.comparison-content {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.similarities-section,
+.differences-section,
+.recommendations-section {
+  margin-bottom: 1.5rem;
+}
+
+.similarities-section h4,
+.differences-section h4,
+.recommendations-section h4 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.similarities-section {
+  border-left: 4px solid #43e97b;
+}
+
+.differences-section {
+  border-left: 4px solid #f5576c;
+}
+
+.recommendations-section {
+  border-left: 4px solid #667eea;
+}
+
+/* Dark mode styles */
+.dark .selection-header h3,
+.dark .results-header h3 {
+  color: #f1f5f9;
+}
+
+.dark .selection-header p {
+  color: #cbd5e1;
+}
+
+.dark .comparison-doc-card h4 {
+  color: #e0e7ff;
+}
+
+.dark .comparison-doc-card .doc-date {
+  color: #94a3b8;
+}
+
+.dark .selection-indicator {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #667eea;
+}
+
+.dark .similarities-section h4,
+.dark .differences-section h4,
+.dark .recommendations-section h4 {
+  color: #f1f5f9;
+}
+
+.dark .vs {
+  color: #cbd5e1;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .documents-grid {
+    grid-template-columns: 1fr;
+    max-height: 300px;
+  }
+
+  .compared-docs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .doc-label {
+    max-width: none;
+  }
+
+  .vs {
+    order: 1;
+  }
+
+  .doc-label.doc1 {
+    order: 2;
+  }
+
+  .doc-label.doc2 {
+    order: 3;
+  }
+
+  .comparison-actions {
+    flex-direction: column;
+  }
+
+  .comparison-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .selection-header h3,
+  .results-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .comparison-content {
+    gap: 1rem;
+  }
+
+  .similarities-section h4,
+  .differences-section h4,
+  .recommendations-section h4 {
+    font-size: 1.1rem;
+  }
+}

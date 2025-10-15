@@ -2,18 +2,16 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import "./enhanced-styles.css";
 import "./improved-styles.css";
+import "./premium-styles.css";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
-import { Switch } from "./components/ui/switch";
-import { Progress } from "./components/ui/progress";
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { Toast, ToastProvider, ToastViewport } from "./components/ui/toast";
-import { useToast } from "./hooks/use-toast";
+import { ToastProvider, useToast } from "./components/ui/toast";
+import Button from "./components/ui/button";
+import Input from "./components/ui/input";
+import { Card, CardContent, CardHeader } from "./components/ui/card";
+import { Loading } from "./components/ui/loading";
+import DocumentComparison from "./components/DocumentComparison";
+import ExportReport from "./components/ExportReport";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -23,7 +21,7 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -33,23 +31,23 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
       setDragActive(false);
     }
   };
-  
+
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
   };
-  
+
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
     }
   };
-  
+
   const handleFile = async (file) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -90,7 +88,7 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
       }, 1000);
     }
   };
-  
+
   return (
     <div className="upload-section">
       <div
@@ -102,12 +100,8 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
       >
         {isUploading ? (
           <div className="upload-progress">
-            <div className="spinner"></div>
-            <p>Uploading document...</p>
-            <div className="progress-container">
-              <Progress value={uploadProgress} className="upload-progress-bar" />
-              <span className="progress-text">{uploadProgress}%</span>
-            </div>
+            <Loading size="large" text={`Uploading document... ${uploadProgress}%`} />
+            <Progress value={uploadProgress} showValue={true} />
           </div>
         ) : (
           <>
@@ -340,10 +334,21 @@ const DocumentAnalysis = ({ document, onBack }) => {
 };
 
 // Documents Dashboard Component
-const DocumentsDashboard = ({ documents, onSelectDocument, onUploadNew, onDeleteDocument, isDarkMode }) => {
+const DocumentsDashboard = ({
+  documents,
+  onSelectDocument,
+  onUploadNew,
+  onDeleteDocument,
+  onCompareDocuments,
+  onExportReport,
+  isDarkMode
+}) => {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectMode, setSelectMode] = React.useState(false);
   const [selectedDocuments, setSelectedDocuments] = React.useState([]);
+  const [showComparison, setShowComparison] = React.useState(false);
+  const [showExport, setShowExport] = React.useState(false);
+  const [exportDocument, setExportDocument] = React.useState(null);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -384,78 +389,132 @@ const DocumentsDashboard = ({ documents, onSelectDocument, onUploadNew, onDelete
     setSelectMode(!selectMode);
     setSelectedDocuments([]);
   };
-  
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header" style={{ position: 'relative' }}>
-        <h2>Your Legal Documents</h2>
-        <div className="dashboard-actions">
-          <Input
-            type="text"
-            placeholder="Search documents..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-          <button onClick={onUploadNew} className="upload-new-btn">
-            Upload New Document
-          </button>
-          <button onClick={toggleSelectMode} className="upload-new-btn" style={{ marginLeft: '10px' }}>
-            {selectMode ? 'Cancel Select' : 'Select to Delete'}
-          </button>
-          {selectMode && (
-            <button onClick={handleDeleteSelected} className="upload-new-btn" style={{ marginLeft: '10px', backgroundColor: '#c53030' }}>
-              Delete Selected
-            </button>
-          )}
-        </div>
-      </div>
-      
-      {documents.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">📚</div>
-          <h3>No documents yet</h3>
-          <p>Upload your first legal document to get started with AI analysis</p>
-          <button onClick={onUploadNew} className="primary-btn">
-            Upload Document
-          </button>
-        </div>
-      ) : (
-        <div className="documents-grid">
-          {filteredDocuments.map((doc) => (
-            <div
-              key={doc.id}
-              className={`document-card ${selectMode && selectedDocuments.includes(doc.id) ? 'selected' : ''}`}
-              onClick={() => handleDocumentClick(doc)}
-              style={{ position: 'relative' }}
-            >
-              {selectMode && (
-                <input
-                  type="checkbox"
-                  checked={selectedDocuments.includes(doc.id)}
-                  onChange={() => handleDocumentClick(doc)}
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    zIndex: 10,
-                    transform: 'scale(1.5)'
-                  }}
-                />
-              )}
-              <div className="document-icon">📄</div>
-              <div className="document-info" title={doc.filename}>
-                <h4>{doc.filename}</h4>
-                <div className={`status ${getStatusColor(doc.analysis_status)}`}>
-                  {doc.analysis_status} - {new Date(doc.upload_date).toLocaleDateString()}
-                </div>
-              </div>
 
-            </div>
-          ))}
+  const handleCompareClick = () => {
+    setShowComparison(true);
+  };
+
+  const handleExportClick = (doc) => {
+    setExportDocument(doc);
+    setShowExport(true);
+  };
+
+  return (
+    <>
+      <div className="dashboard">
+        <div className="dashboard-header" style={{ position: 'relative' }}>
+          <h2>Your Legal Documents</h2>
+          <div className="dashboard-actions">
+            <Input
+              type="text"
+              placeholder="Search documents..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <Button onClick={onUploadNew} className="upload-new-btn">
+              Upload New
+            </Button>
+            <Button onClick={handleCompareClick} variant="secondary">
+              Compare Docs
+            </Button>
+            <Button onClick={toggleSelectMode} variant="outline">
+              {selectMode ? 'Cancel Select' : 'Select to Delete'}
+            </Button>
+            {selectMode && (
+              <Button
+                onClick={handleDeleteSelected}
+                variant="danger"
+                disabled={selectedDocuments.length === 0}
+              >
+                Delete Selected ({selectedDocuments.length})
+              </Button>
+            )}
+          </div>
         </div>
+
+        {documents.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📚</div>
+            <h3>No documents yet</h3>
+            <p>Upload your first legal document to get started with AI analysis</p>
+            <Button onClick={onUploadNew} className="primary-btn">
+              Upload Document
+            </Button>
+          </div>
+        ) : (
+          <div className="documents-grid">
+            {filteredDocuments.map((doc) => (
+              <Card
+                key={doc.id}
+                className={`document-card ${selectMode && selectedDocuments.includes(doc.id) ? 'selected' : ''}`}
+                onClick={() => handleDocumentClick(doc)}
+              >
+                <CardContent>
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedDocuments.includes(doc.id)}
+                      onChange={() => handleDocumentClick(doc)}
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        zIndex: 10,
+                        transform: 'scale(1.5)'
+                      }}
+                    />
+                  )}
+                  <div className="document-icon">📄</div>
+                  <div className="document-info" title={doc.filename}>
+                    <h4>{doc.filename}</h4>
+                    <div className={`status ${getStatusColor(doc.analysis_status)}`}>
+                      {doc.analysis_status} - {new Date(doc.upload_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                  {!selectMode && doc.analysis_status === 'completed' && (
+                    <div className="document-actions">
+                      <Button
+                        size="small"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportClick(doc);
+                        }}
+                      >
+                        Export
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <DocumentComparison
+        isOpen={showComparison}
+        onClose={() => setShowComparison(false)}
+        documents={documents}
+      />
+
+      {exportDocument && (
+        <ExportReport
+          isOpen={showExport}
+          onClose={() => {
+            setShowExport(false);
+            setExportDocument(null);
+          }}
+          document={exportDocument}
+          analysis={exportDocument ? {
+            summary: exportDocument.summary,
+            key_clauses: exportDocument.key_clauses || [],
+            risk_assessment: exportDocument.risk_assessment || ''
+          } : null}
+        />
       )}
-    </div>
+    </>
   );
 };
 
@@ -472,7 +531,6 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const { toast } = useToast();
   
   useEffect(() => {
     loadDocuments();
@@ -535,7 +593,6 @@ function App() {
   };
   
   const handleUploadSuccess = (uploadData) => {
-    alert('Document uploaded successfully!');
     loadDocuments();
     setCurrentView('dashboard');
   };
@@ -565,73 +622,60 @@ function App() {
   }
   
   return (
-    <div className={`App ${isDarkMode ? 'dark' : ''}`}>
-      <header className="app-header">
-        <div className="header-content">
-          <h1>⚖️ Legal Document AI Assistant</h1>
-          <p>Simplify complex legal documents with AI-powered analysis</p>
-        </div>
-        <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className="dark-mode-toggle"
-          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            backgroundColor: isDarkMode ? '#667eea' : '#f3f4f6',
-            color: isDarkMode ? '#f3f4f6' : '#1a202c',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            fontSize: '20px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            userSelect: 'none',
-            zIndex: 10,
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.7)';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          {isDarkMode ? '☀️' : '🌙'}
-        </button>
-      </header>
-      
-      <main className="main-content">
-        {currentView === 'upload' && (
-          <DocumentUpload onUploadSuccess={handleUploadSuccess} />
-        )}
-        
-        {currentView === 'dashboard' && (
-          <DocumentsDashboard
-            documents={documents}
-            onSelectDocument={handleSelectDocument}
-            onUploadNew={handleUploadNew}
-            onDeleteDocument={handleDeleteDocument}
-            isDarkMode={isDarkMode}
-          />
-        )}
-        
-        {currentView === 'analysis' && selectedDocument && (
-          <DocumentAnalysis 
-            document={selectedDocument}
-            onBack={handleBackToDashboard}
-          />
-        )}
-      </main>
-      {/* Removed Emergent watermark badge */}
-    </div>
+    <ToastProvider>
+      <div className={`App ${isDarkMode ? 'dark' : ''}`}>
+        <header className="app-header">
+          <div className="header-content">
+            <h1>⚖️ Legal Document AI Assistant</h1>
+            <p>Simplify complex legal documents with AI-powered analysis</p>
+          </div>
+          <Button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="dark-mode-toggle"
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            size="small"
+            variant="ghost"
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '20px',
+              zIndex: 10,
+            }}
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </Button>
+        </header>
+
+        <main className="main-content">
+          {currentView === 'upload' && (
+            <DocumentUpload onUploadSuccess={handleUploadSuccess} />
+          )}
+
+          {currentView === 'dashboard' && (
+            <DocumentsDashboard
+              documents={documents}
+              onSelectDocument={handleSelectDocument}
+              onUploadNew={handleUploadNew}
+              onDeleteDocument={handleDeleteDocument}
+              onCompareDocuments={() => {}}
+              onExportReport={() => {}}
+              isDarkMode={isDarkMode}
+            />
+          )}
+
+          {currentView === 'analysis' && selectedDocument && (
+            <DocumentAnalysis
+              document={selectedDocument}
+              onBack={handleBackToDashboard}
+            />
+          )}
+        </main>
+      </div>
+    </ToastProvider>
   );
 }
 

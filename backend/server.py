@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import shutil
 import httpx
 import asyncio
+import re
 from PyPDF2 import PdfReader
 
 # Custom classes for message handling
@@ -77,6 +78,8 @@ class Document(BaseModel):
     summary: Optional[str] = None
     key_clauses: Optional[List[dict]] = None
     risk_assessment: Optional[str] = None
+    recommendations: Optional[str] = None
+    plain_english_explanation: Optional[str] = None
 
 class DocumentCreate(BaseModel):
     filename: str
@@ -111,6 +114,10 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
     logging.error("GEMINI_API_KEY environment variable is not set!")
     raise ValueError("GEMINI_API_KEY environment variable is required")
+
+# Validate API key format (basic check)
+if not GEMINI_API_KEY.startswith('AIza'):
+    logging.warning("GEMINI_API_KEY does not appear to be a valid Google AI API key format")
 
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
@@ -526,7 +533,8 @@ FORMATTING REQUIREMENTS:
 - Use clear headings and subheadings for easy navigation
 - Do not use emojis or special characters in headings - use plain text only
 - Ensure every conclusion is directly supported by the document content
-- Provide well-phrased, clear explanations with good grammar and structure"""
+- Provide well-phrased, clear explanations with good grammar and structure
+- Use proper line breaks and spacing between sections for readability"""
 
         try:
             logging.info("Starting AI analysis call")
@@ -544,7 +552,7 @@ FORMATTING REQUIREMENTS:
             # Extract executive summary
             summary = ""
             try:
-                summary_match = re.search(r"EXECUTIVE SUMMARY(.*?)(?=KEY CLAUSES ANALYSIS|$)", analysis_text, re.DOTALL)
+                summary_match = re.search(r"EXECUTIVE SUMMARY\s*\n(.*?)(?=\nKEY CLAUSES ANALYSIS|$)", analysis_text, re.DOTALL)
                 if summary_match:
                     summary = summary_match.group(1).strip()
                 else:
@@ -556,25 +564,31 @@ FORMATTING REQUIREMENTS:
             # Extract and parse key clauses
             key_clauses = []
             try:
-                key_clauses_match = re.search(r"KEY CLAUSES ANALYSIS(.*?)(?=RISK ASSESSMENT|$)", analysis_text, re.DOTALL)
+                key_clauses_match = re.search(r"KEY CLAUSES ANALYSIS\s*\n(.*?)(?=\nRISK ASSESSMENT|$)", analysis_text, re.DOTALL)
                 if key_clauses_match:
                     clauses_section = key_clauses_match.group(1).strip()
                     # Parse individual clauses (numbered 1-7)
-                    clause_pattern = r"(\d+)\.\s*(.*?)(?=\d+\.|$)"
+                    # Look for patterns like "1. Clause Title" or "1. Exact Clause Reference:"
+                    clause_pattern = r"(\d+)\.\s*(.*?)(?=\n\d+\.|$)"
                     matches = re.findall(clause_pattern, clauses_section, re.DOTALL)
                     for match in matches[:7]:  # Limit to 7 clauses
                         clause_num, clause_content = match
                         # Parse sub-components within each clause
-                        sub_parts = re.split(r'\n\s*(?:[A-Z][a-zA-Z\s]+:)', clause_content)
-                        if len(sub_parts) >= 2:
-                            key_clauses.append({
-                                "clause_number": int(clause_num),
-                                "reference": sub_parts[1].strip() if len(sub_parts) > 1 else "",
-                                "explanation": sub_parts[2].strip() if len(sub_parts) > 2 else "",
-                                "implications": sub_parts[3].strip() if len(sub_parts) > 3 else "",
-                                "impact": sub_parts[4].strip() if len(sub_parts) > 4 else "",
-                                "concerns": sub_parts[5].strip() if len(sub_parts) > 5 else ""
-                            })
+                        # Look for patterns like "Exact Clause Reference:", "Plain English Explanation:", etc.
+                        sub_patterns = {
+                            "reference": r"Exact Clause Reference:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                            "explanation": r"Plain English Explanation:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                            "implications": r"Legal Implications:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                            "impact": r"Business Impact:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                            "concerns": r"Potential Concerns:\s*(.*?)(?=\n\d+\.|$)"
+                        }
+
+                        clause_data = {"clause_number": int(clause_num)}
+                        for field, pattern in sub_patterns.items():
+                            field_match = re.search(pattern, clause_content, re.DOTALL)
+                            clause_data[field] = field_match.group(1).strip() if field_match else ""
+
+                        key_clauses.append(clause_data)
                 else:
                     logging.warning("KEY CLAUSES ANALYSIS section not found in analysis text")
             except Exception as e:
@@ -583,7 +597,7 @@ FORMATTING REQUIREMENTS:
 
             risk_assessment = ""
             try:
-                risk_match = re.search(r"RISK ASSESSMENT(.*?)(?=PLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
+                risk_match = re.search(r"RISK ASSESSMENT\s*\n(.*?)(?=\nRECOMMENDATIONS|$)", analysis_text, re.DOTALL)
                 if risk_match:
                     risk_assessment = risk_match.group(1).strip()
                 else:
@@ -591,6 +605,30 @@ FORMATTING REQUIREMENTS:
             except Exception as e:
                 logging.error(f"Error parsing risk assessment section with regex: {str(e)}")
                 risk_assessment = ""
+
+            # Extract recommendations
+            recommendations = ""
+            try:
+                recommendations_match = re.search(r"RECOMMENDATIONS\s*\n(.*?)(?=\nPLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
+                if recommendations_match:
+                    recommendations = recommendations_match.group(1).strip()
+                else:
+                    logging.warning("RECOMMENDATIONS section not found in analysis text")
+            except Exception as e:
+                logging.error(f"Error parsing recommendations section with regex: {str(e)}")
+                recommendations = ""
+
+            # Extract plain english explanation
+            plain_english_explanation = ""
+            try:
+                plain_english_match = re.search(r"PLAIN ENGLISH EXPLANATION\s*\n(.*)", analysis_text, re.DOTALL)
+                if plain_english_match:
+                    plain_english_explanation = plain_english_match.group(1).strip()
+                else:
+                    logging.warning("PLAIN ENGLISH EXPLANATION section not found in analysis text")
+            except Exception as e:
+                logging.error(f"Error parsing plain english explanation section with regex: {str(e)}")
+                plain_english_explanation = ""
 
         except Exception as e:
             logging.error(f"Error during AI analysis: {str(e)}", exc_info=True)
@@ -609,17 +647,19 @@ FORMATTING REQUIREMENTS:
                 "analysis_status": "completed",
                 "summary": summary,
                 "key_clauses": key_clauses,
-                "risk_assessment": risk_assessment.strip()
+                "risk_assessment": risk_assessment.strip(),
+                "recommendations": recommendations.strip(),
+                "plain_english_explanation": plain_english_explanation.strip()
             }}
         )
-        sync_client.close()
-
         return {
             "document_id": document_id,
             "status": "completed",
             "summary": summary,
             "key_clauses": key_clauses,
-            "risk_assessment": risk_assessment.strip()
+            "risk_assessment": risk_assessment.strip(),
+            "recommendations": recommendations.strip(),
+            "plain_english_explanation": plain_english_explanation.strip()
         }
 
     except Exception as e:
@@ -850,6 +890,22 @@ RISK ASSESSMENT
 
 """
 
+        if sections.get('recommendations', True):
+            export_content += f"""
+RECOMMENDATIONS
+===============
+{document.get('recommendations', 'No recommendations available')}
+
+"""
+
+        if sections.get('plain_english', True):
+            export_content += f"""
+PLAIN ENGLISH EXPLANATION
+=========================
+{document.get('plain_english_explanation', 'No plain english explanation available')}
+
+"""
+
         if sections.get('qa', True):
             # Get Q&A history
             qa_messages = list(sync_db.chat_messages.find({"document_id": document_id}).sort("timestamp", 1))
@@ -866,12 +922,12 @@ Timestamp: {msg.get('timestamp', 'N/A')}
 
 """
 
-        sync_client.close()
-
         # Clean the AI response content to remove artifacts
         def clean_ai_response(text):
+            if text is None:
+                return ''
             if not text:
-                return text
+                return ''
             # Remove various AI artifacts and formatting
             text = text.replace('**', '')
             text = text.replace('*', '')
@@ -898,8 +954,10 @@ Timestamp: {msg.get('timestamp', 'N/A')}
             return text
 
         # Apply cleaning to all sections
-        summary = clean_ai_response(document.get('summary', ''))
-        risk_assessment = clean_ai_response(document.get('risk_assessment', ''))
+        summary = clean_ai_response(document.get('summary', '')) or ''
+        risk_assessment = clean_ai_response(document.get('risk_assessment', '')) or ''
+        recommendations = clean_ai_response(document.get('recommendations', '')) or ''
+        plain_english_explanation = clean_ai_response(document.get('plain_english_explanation', '')) or ''
 
         # Also clean key clauses
         key_clauses = document.get('key_clauses', [])
@@ -960,7 +1018,24 @@ Timestamp: {msg.get('timestamp', 'N/A')}
             # Add sections
             if sections.get('summary', True):
                 story.append(Paragraph("EXECUTIVE SUMMARY", styles['Heading2']))
-                story.append(Paragraph(summary, styles['Normal']))
+
+                # Color-code important terms in summary
+                summary_lines = summary.split('\n')
+                for line in summary_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    # Check for risk level keywords in summary
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        story.append(Paragraph(line, high_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        story.append(Paragraph(line, medium_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        story.append(Paragraph(line, low_risk_style))
+                    else:
+                        story.append(Paragraph(line, styles['Normal']))
+
                 story.append(Spacer(1, 12))
 
             if sections.get('clauses', True):
@@ -968,10 +1043,32 @@ Timestamp: {msg.get('timestamp', 'N/A')}
                 key_clauses = document.get('key_clauses', [])
                 for i, clause in enumerate(key_clauses, 1):
                     story.append(Paragraph(f"{i}. {clause.get('reference', 'N/A')}", styles['Heading3']))
-                    story.append(Paragraph(f"Explanation: {clause.get('explanation', 'N/A')}", styles['Normal']))
+
+                    # Color-code clause explanations based on risk keywords
+                    explanation = clause.get('explanation', 'N/A')
+                    if any(keyword in explanation.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        story.append(Paragraph(f"Explanation: {explanation}", high_risk_style))
+                    elif any(keyword in explanation.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        story.append(Paragraph(f"Explanation: {explanation}", medium_risk_style))
+                    elif any(keyword in explanation.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        story.append(Paragraph(f"Explanation: {explanation}", low_risk_style))
+                    else:
+                        story.append(Paragraph(f"Explanation: {explanation}", styles['Normal']))
+
                     story.append(Paragraph(f"Legal Implications: {clause.get('implications', 'N/A')}", styles['Normal']))
                     story.append(Paragraph(f"Business Impact: {clause.get('impact', 'N/A')}", styles['Normal']))
-                    story.append(Paragraph(f"Potential Concerns: {clause.get('concerns', 'N/A')}", styles['Normal']))
+
+                    # Color-code potential concerns
+                    concerns = clause.get('concerns', 'N/A')
+                    if any(keyword in concerns.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        story.append(Paragraph(f"Potential Concerns: {concerns}", high_risk_style))
+                    elif any(keyword in concerns.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        story.append(Paragraph(f"Potential Concerns: {concerns}", medium_risk_style))
+                    elif any(keyword in concerns.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        story.append(Paragraph(f"Potential Concerns: {concerns}", low_risk_style))
+                    else:
+                        story.append(Paragraph(f"Potential Concerns: {concerns}", styles['Normal']))
+
                     story.append(Spacer(1, 6))
 
             if sections.get('risks', True):
@@ -994,6 +1091,40 @@ Timestamp: {msg.get('timestamp', 'N/A')}
                         story.append(Paragraph(line, low_risk_style))
                     else:
                         story.append(Paragraph(line, styles['Normal']))
+
+                story.append(Spacer(1, 12))
+
+            if sections.get('recommendations', True):
+                story.append(Paragraph("RECOMMENDATIONS", styles['Heading2']))
+
+                # Color-code recommendations based on risk keywords
+                recommendations_lines = recommendations.split('\n')
+                for line in recommendations_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        story.append(Paragraph(line, high_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        story.append(Paragraph(line, medium_risk_style))
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        story.append(Paragraph(line, low_risk_style))
+                    else:
+                        story.append(Paragraph(line, styles['Normal']))
+
+                story.append(Spacer(1, 12))
+
+            if sections.get('plain_english', True):
+                story.append(Paragraph("PLAIN ENGLISH EXPLANATION", styles['Heading2']))
+
+                # Plain english explanation typically doesn't need color coding
+                plain_english_lines = plain_english_explanation.split('\n')
+                for line in plain_english_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    story.append(Paragraph(line, styles['Normal']))
 
                 story.append(Spacer(1, 12))
 
@@ -1034,17 +1165,69 @@ Timestamp: {msg.get('timestamp', 'N/A')}
             # Add sections
             if sections.get('summary', True):
                 doc.add_heading('Executive Summary', level=1)
-                doc.add_paragraph(summary)
+
+                # Color-code important terms in summary
+                summary_lines = summary.split('\n')
+                for line in summary_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    p = doc.add_paragraph()
+
+                    # Check for risk level keywords in summary
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p.add_run(line)
 
             if sections.get('clauses', True):
                 doc.add_heading('Key Clauses Analysis', level=1)
                 key_clauses = document.get('key_clauses', [])
                 for i, clause in enumerate(key_clauses, 1):
                     doc.add_heading(f'{i}. {clause.get("reference", "N/A")}', level=2)
-                    doc.add_paragraph(f"Explanation: {clause.get('explanation', 'N/A')}")
+
+                    # Color-code clause explanations
+                    explanation = clause.get('explanation', 'N/A')
+                    p_exp = doc.add_paragraph()
+                    p_exp.add_run("Explanation: ")
+                    if any(keyword in explanation.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        run = p_exp.add_run(explanation)
+                        run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    elif any(keyword in explanation.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        run = p_exp.add_run(explanation)
+                        run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                    elif any(keyword in explanation.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        run = p_exp.add_run(explanation)
+                        run.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p_exp.add_run(explanation)
+
                     doc.add_paragraph(f"Legal Implications: {clause.get('implications', 'N/A')}")
                     doc.add_paragraph(f"Business Impact: {clause.get('impact', 'N/A')}")
-                    doc.add_paragraph(f"Potential Concerns: {clause.get('concerns', 'N/A')}")
+
+                    # Color-code potential concerns
+                    concerns = clause.get('concerns', 'N/A')
+                    p_conc = doc.add_paragraph()
+                    p_conc.add_run("Potential Concerns: ")
+                    if any(keyword in concerns.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        run = p_conc.add_run(concerns)
+                        run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    elif any(keyword in concerns.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        run = p_conc.add_run(concerns)
+                        run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                    elif any(keyword in concerns.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        run = p_conc.add_run(concerns)
+                        run.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p_conc.add_run(concerns)
 
             if sections.get('risks', True):
                 doc.add_heading('Risk Assessment', level=1)
@@ -1071,6 +1254,41 @@ Timestamp: {msg.get('timestamp', 'N/A')}
                         run.font.color.rgb = RGBColor(0, 128, 0)  # Green
                     else:
                         p.add_run(line)
+
+            if sections.get('recommendations', True):
+                doc.add_heading('Recommendations', level=1)
+
+                # Color-code recommendations based on risk keywords
+                recommendations_lines = recommendations.split('\n')
+                for line in recommendations_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    p = doc.add_paragraph()
+
+                    if any(keyword in line.upper() for keyword in ['HIGH-RISK', 'CRITICAL', 'SEVERE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+                    elif any(keyword in line.upper() for keyword in ['MEDIUM-RISK', 'MODERATE']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+                    elif any(keyword in line.upper() for keyword in ['LOW-RISK', 'MINIMAL']):
+                        run = p.add_run(line)
+                        run.font.color.rgb = RGBColor(0, 128, 0)  # Green
+                    else:
+                        p.add_run(line)
+
+            if sections.get('plain_english', True):
+                doc.add_heading('Plain English Explanation', level=1)
+
+                # Plain english explanation typically doesn't need color coding
+                plain_english_lines = plain_english_explanation.split('\n')
+                for line in plain_english_lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    doc.add_paragraph(line)
 
             if sections.get('qa', True):
                 doc.add_heading('Q&A History', level=1)
@@ -1108,14 +1326,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

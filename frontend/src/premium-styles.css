@@ -1202,4 +1202,6 @@ body {
   color: #f1f5f9;
 }
 
-.dark .search-input::placeholder
+.dark .search-input::placeholder {
+  color: rgba(241, 245, 249, 0.6);
+}

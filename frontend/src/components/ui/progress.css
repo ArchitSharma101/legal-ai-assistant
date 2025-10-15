@@ -7,10 +7,11 @@
 .progress-bar {
   flex: 1;
   height: 8px;
-  background: rgba(255, 255, 255, 0.2);
+  background: #f1f5f9;
   border-radius: 4px;
   overflow: hidden;
   position: relative;
+  border: 1px solid #e2e8f0;
 }
 
 .progress-medium {
@@ -27,21 +28,10 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   border-radius: 4px;
   transition: width 0.3s ease;
   position: relative;
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
@@ -56,14 +46,20 @@
 .progress-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4a5568;
+  color: #64748b;
   min-width: 40px;
   text-align: right;
+  font-family: inherit;
 }
 
 /* Dark mode */
 .dark .progress-bar {
-  background: rgba(255, 255, 255, 0.1);
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark .progress-fill {
+  background: #60a5fa;
 }
 
 .dark .progress-value {

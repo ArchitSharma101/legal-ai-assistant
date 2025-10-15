@@ -14,11 +14,10 @@
 }
 
 .modal-content {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   animation: slideIn 0.3s ease-out;
   max-height: 90vh;
   overflow: hidden;
@@ -51,22 +50,23 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px 32px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1a202c;
+  color: #1e293b;
   margin: 0;
   letter-spacing: -0.025em;
+  font-family: inherit;
 }
 
 .modal-close {
   background: none;
   border: none;
   font-size: 28px;
-  color: #a0aec0;
+  color: #64748b;
   cursor: pointer;
   padding: 4px;
   border-radius: 8px;
@@ -79,14 +79,15 @@
 }
 
 .modal-close:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #2d3748;
+  background: #f8fafc;
+  color: #1e293b;
 }
 
 .modal-body {
   padding: 24px 32px;
   overflow-y: auto;
   flex: 1;
+  max-height: calc(90vh - 120px);
 }
 
 /* Animations */
@@ -112,8 +113,8 @@
 
 /* Dark mode */
 .dark .modal-content {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #1e293b;
+  border-color: #374151;
 }
 
 .dark .modal-title {
@@ -121,16 +122,16 @@
 }
 
 .dark .modal-close {
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .dark .modal-close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: #334155;
   color: #f1f5f9;
 }
 
 .dark .modal-header {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: #374151;
 }
 
 /* Mobile responsive */

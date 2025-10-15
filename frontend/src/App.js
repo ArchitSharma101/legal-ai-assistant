@@ -10,8 +10,10 @@ import Button from "./components/ui/button";
 import Input from "./components/ui/input";
 import { Card, CardContent, CardHeader } from "./components/ui/card";
 import { Loading } from "./components/ui/loading";
+import Progress from "./components/ui/progress";
 import DocumentComparison from "./components/DocumentComparison";
 import ExportReport from "./components/ExportReport";
+import RiskMeter from "./components/RiskMeter";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -105,7 +107,7 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
           </div>
         ) : (
           <>
-            <div className="upload-icon">📄</div>
+            <div className="upload-icon">Document Upload</div>
             <h3>Upload Legal Document</h3>
             <p>Drag and drop your document here, or click to browse</p>
             <p className="file-types">Supports PDF, Word, and Text files</p>
@@ -130,6 +132,20 @@ const DocumentAnalysis = ({ document, onBack }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
+  const [showExport, setShowExport] = useState(false);
+
+  // Calculate risk level from analysis
+  const getRiskLevel = () => {
+    if (!analysis?.risk_assessment) return 'low';
+
+    const riskText = analysis.risk_assessment.toLowerCase();
+    if (riskText.includes('high') || riskText.includes('severe') || riskText.includes('critical')) {
+      return 'high';
+    } else if (riskText.includes('medium') || riskText.includes('moderate')) {
+      return 'medium';
+    }
+    return 'low';
+  };
   
   useEffect(() => {
     if (document.analysis_status === 'completed' && document.summary) {
@@ -204,6 +220,17 @@ const DocumentAnalysis = ({ document, onBack }) => {
           <h2>{document.filename}</h2>
           <p className="upload-date">Uploaded: {new Date(document.upload_date).toLocaleDateString()}</p>
         </div>
+        {analysis && (
+          <div className="document-actions">
+            <Button
+              onClick={() => setShowExport(true)}
+              variant="primary"
+              size="small"
+            >
+              Export Report
+            </Button>
+          </div>
+        )}
       </div>
       
       <div className="analysis-tabs">
@@ -243,82 +270,195 @@ const DocumentAnalysis = ({ document, onBack }) => {
         ) : analysis ? (
           <>
             {activeTab === 'summary' && (
-              <div className="summary-section">
-                <h3>Document Summary</h3>
+              <div className="summary-section" style={{ marginBottom: '20px' }}>
                 <div className="summary-content">
-                  <ReactMarkdown>{analysis.summary}</ReactMarkdown>
+                  <ReactMarkdown components={{
+                    h4: ({children}) => <div className="summary-subheader">{children}</div>,
+                    p: ({children}) => <div className="summary-text">{children}</div>,
+                    strong: ({children}) => <span className="highlight-text">{children}</span>
+                  }}>{analysis.summary}</ReactMarkdown>
                 </div>
               </div>
             )}
             
             {activeTab === 'clauses' && (
-              <div className="clauses-section">
-                <h3>Key Clauses</h3>
+              <div className="clauses-section" style={{ marginBottom: '20px' }}>
                 {analysis.key_clauses.length > 0 ? (
                   <div className="clauses-list">
                     {analysis.key_clauses.map((clause, index) => (
-                      <div key={index} className="clause-item">
-                        <h4>{clause.clause}</h4>
-                        <div style={{whiteSpace: 'pre-line'}}>
-                          <ReactMarkdown>{clause.explanation}</ReactMarkdown>
+                      <div key={index} className="clause-item" style={{ marginBottom: '15px' }}>
+                        <div className="clause-header">
+                          <span className="clause-number">{index + 1}</span>
+                          <h4>{clause.clause}</h4>
+                        </div>
+                        <div className="clause-content">
+                          <ReactMarkdown components={{
+                            p: ({children}) => <div className="clause-text">{children}</div>,
+                            strong: ({children}) => <span className="clause-highlight">{children}</span>
+                          }}>{clause.explanation}</ReactMarkdown>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="clause-extract" style={{whiteSpace: 'pre-line'}}>
-                    {analysis.summary.includes('KEY CLAUSES') ?
-                      analysis.summary.split('KEY CLAUSES')[1].split('RISK ASSESSMENT')[0] ||
-                      analysis.summary.split('KEY CLAUSES')[1] : 'Key clauses information not available'}
+                  <div className="clause-extract">
+                    <ReactMarkdown components={{
+                      h4: ({children}) => <div className="clause-subheader">{children}</div>,
+                      p: ({children}) => <div className="clause-text">{children}</div>,
+                      strong: ({children}) => <span className="clause-highlight">{children}</span>
+                    }}>
+                      {analysis.summary.includes('## 🔑 KEY CLAUSES') ?
+                        analysis.summary.split('## 🔑 KEY CLAUSES')[1].split('## ⚠️')[0] ||
+                        analysis.summary.split('## 🔑 KEY CLAUSES')[1] : 'Key clauses information not available'}
+                    </ReactMarkdown>
                   </div>
                 )}
               </div>
             )}
-            
+
             {activeTab === 'risks' && (
-              <div className="risks-section">
-                <h3>Risk Assessment</h3>
+              <div className="risks-section" style={{ marginBottom: '20px' }}>
                 <div className="risk-content">
-                  {analysis.risk_assessment ? 
-                    <ReactMarkdown>{analysis.risk_assessment}</ReactMarkdown> :
-                    <p>No specific risks identified in this document.</p>
-                  }
+                  <div className="risk-overview" style={{ marginBottom: '15px' }}>
+                    <RiskMeter riskLevel={getRiskLevel()} />
+                    <div className="risk-summary">
+                      <div className="risk-level-indicator">
+                        <span className={`risk-badge ${getRiskLevel()}`}>
+                          {getRiskLevel().toUpperCase()} RISK
+                        </span>
+                      </div>
+                      <p className="risk-description">
+                        {getRiskLevel() === 'high' && 'This document contains significant risks that require immediate attention and legal review.'}
+                        {getRiskLevel() === 'medium' && 'This document has moderate risks that should be carefully reviewed before proceeding.'}
+                        {getRiskLevel() === 'low' && 'This document appears to have minimal risks, but standard due diligence is still recommended.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="risk-details">
+                    {analysis.risk_assessment ? (
+                      <ReactMarkdown components={{
+                        h4: ({children}) => <div className="risk-subheader">{children}</div>,
+                        p: ({children}) => <div className="risk-text">{children}</div>,
+                        strong: ({children}) => <span className="risk-highlight">{children}</span>,
+                        ul: ({children}) => <div className="risk-list">{children}</div>,
+                        li: ({children}) => <div className="risk-list-item">{children}</div>
+                      }}>{analysis.risk_assessment}</ReactMarkdown>
+                    ) : (
+                      <div className="no-risks">
+                        <div className="no-risks-icon">No Risks</div>
+                        <p>No specific risks identified in this document.</p>
+                        <span className="no-risks-note">However, we recommend consulting with legal professionals for comprehensive review.</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
             
             {activeTab === 'qa' && (
-              <div className="qa-section">
-                <h3>Ask Questions</h3>
+              <div className="qa-section" style={{ marginBottom: '20px' }}>
                 
-                <div className="question-input">
-                  <textarea
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Ask any question about this document..."
-                    rows="3"
-                  />
-                  <button 
-                    onClick={askQuestion} 
-                    disabled={isAsking || !question.trim()}
-                    className="ask-btn"
-                  >
-                    {isAsking ? 'Asking...' : 'Ask Question'}
-                  </button>
+
+                <div className="question-input-container" style={{ marginBottom: '20px' }}>
+                  <div className="question-input">
+                    <textarea
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      placeholder="Example: What are the payment terms? or What happens if we breach the contract?"
+                      rows="3"
+                    />
+                    <button
+                      onClick={askQuestion}
+                      disabled={isAsking || !question.trim()}
+                      className="ask-btn"
+                    >
+                      {isAsking ? (
+                        <>
+                          <div className="btn-spinner"></div>
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          Ask AI
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                
+
                 <div className="chat-history">
-                  {chatHistory.map((chat, index) => (
-                    <div key={index} className="chat-item">
-                      <div className="question">
-                        <strong>Q:</strong> {chat.question}
-                      </div>
-                      <div className="answer">
-                        <strong>A:</strong> <ReactMarkdown>{chat.answer}</ReactMarkdown>
-                      </div>
+                  {chatHistory.length === 0 ? (
+                    <div className="empty-chat">
+                      <div className="empty-chat-icon">💭</div>
+                      <h4>No questions asked yet</h4>
+                      <p>Ask your first question to get started with AI-powered document analysis.</p>
                     </div>
-                  ))}
+                  ) : (
+                    chatHistory.map((chat, index) => (
+                      <div key={index} className="chat-item" style={{ marginBottom: '15px' }}>
+                      <div className="question-bubble">
+                        <div className="question-header">
+                          <span className="question-icon">Question</span>
+                          <span className="question-label">Your Question</span>
+                        </div>
+                          <div className="question-text">{chat.question}</div>
+                        </div>
+                        <div className="answer-bubble">
+                          <div className="answer-header">
+                            <span className="answer-icon">AI</span>
+                            <span className="answer-label">AI Analysis</span>
+                          </div>
+                          <div className="answer-content">
+                            <ReactMarkdown components={{
+                              p: ({children}) => <div className="answer-text">{children}</div>,
+                              strong: ({children}) => <span className="answer-highlight">{children}</span>,
+                              ul: ({children}) => <div className="answer-list">{children}</div>,
+                              li: ({children}) => <div className="answer-list-item">{children}</div>
+                            }}>{chat.answer}</ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+
+                {chatHistory.length > 0 && (
+                  <div className="export-section" style={{ marginTop: '20px' }}>
+                    <div className="export-info">
+                      <span className="export-icon">📄</span>
+                      <span>Export this Q&A session for your records</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Create export data for Q&A
+                        const exportData = {
+                          document_id: document.id,
+                          format: 'pdf',
+                          sections: { qa: true }
+                        };
+                        // Trigger export
+                        axios.post(`${API}/documents/${document.id}/export`, exportData, {
+                          responseType: 'blob'
+                        }).then(response => {
+                          const url = window.URL.createObjectURL(new Blob([response.data]));
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', `${document.filename.replace(/\.[^/.]+$/, '')}_qa_export.pdf`);
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          window.URL.revokeObjectURL(url);
+                        }).catch(error => {
+                          console.error('Export failed:', error);
+                          alert('Export failed. Please try again.');
+                        });
+                      }}
+                      className="export-btn"
+                    >
+                      📄 Export Q&A Session
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -329,6 +469,13 @@ const DocumentAnalysis = ({ document, onBack }) => {
           </div>
         )}
       </div>
+
+      <ExportReport
+        isOpen={showExport}
+        onClose={() => setShowExport(false)}
+        document={document}
+        analysis={analysis}
+      />
     </div>
   );
 };
@@ -626,7 +773,7 @@ function App() {
       <div className={`App ${isDarkMode ? 'dark' : ''}`}>
         <header className="app-header">
           <div className="header-content">
-            <h1>⚖️ Legal Document AI Assistant</h1>
+            <h1>Legal Document AI Assistant</h1>
             <p>Simplify complex legal documents with AI-powered analysis</p>
           </div>
           <Button

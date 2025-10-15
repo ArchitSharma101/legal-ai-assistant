@@ -39,8 +39,8 @@
 }
 
 .comparison-doc-card.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  background: #eff6ff;
 }
 
 .comparison-doc-card .doc-icon {
@@ -69,17 +69,18 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid #667eea;
+  background: white;
+  border: 2px solid #3b82f6;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.75rem;
-  color: #667eea;
+  color: #3b82f6;
   opacity: 0;
   transform: scale(0.8);
   transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .selection-indicator.active {
@@ -138,12 +139,12 @@
 }
 
 .doc-label.doc1 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   color: white;
 }
 
 .doc-label.doc2 {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #64748b;
   color: white;
 }
 
@@ -177,15 +178,15 @@
 }
 
 .similarities-section {
-  border-left: 4px solid #43e97b;
+  border-left: 4px solid #10b981;
 }
 
 .differences-section {
-  border-left: 4px solid #f5576c;
+  border-left: 4px solid #ef4444;
 }
 
 .recommendations-section {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #3b82f6;
 }
 
 /* Dark mode styles */

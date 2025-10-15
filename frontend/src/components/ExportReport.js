@@ -5,6 +5,7 @@ import Button from './ui/button';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Loading } from './ui/loading';
 import { useToast } from './ui/toast';
+import RiskMeter from './RiskMeter';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -19,6 +20,19 @@ const ExportReport = ({ isOpen, onClose, document, analysis }) => {
     qa: true
   });
   const { toast } = useToast();
+
+  // Calculate risk level from analysis
+  const getRiskLevel = () => {
+    if (!analysis?.risk_assessment) return 'low';
+
+    const riskText = analysis.risk_assessment.toLowerCase();
+    if (riskText.includes('high') || riskText.includes('severe') || riskText.includes('critical')) {
+      return 'high';
+    } else if (riskText.includes('medium') || riskText.includes('moderate')) {
+      return 'medium';
+    }
+    return 'low';
+  };
 
   const handleExport = async () => {
     if (!document || !analysis) return;
@@ -80,13 +94,18 @@ const ExportReport = ({ isOpen, onClose, document, analysis }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Export Analysis Report"
-      size="medium"
+      title="EXPORT ANALYSIS REPORT"
+      size="large"
     >
       <div className="export-modal">
-        <div className="export-info">
-          <h4>Export Document: {document?.filename}</h4>
-          <p>Choose your preferred format and sections to include in the report.</p>
+        <div className="export-header">
+          <div className="document-info">
+            <h4>DOCUMENT: {document?.filename}</h4>
+            <div className="risk-display">
+              <RiskMeter riskLevel={getRiskLevel()} />
+            </div>
+          </div>
+          <p className="export-description">Select sections and format for professional report generation</p>
         </div>
 
         <Card className="export-options">

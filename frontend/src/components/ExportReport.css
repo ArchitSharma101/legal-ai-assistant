@@ -1,35 +1,53 @@
 .export-modal {
-  min-height: 500px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.export-info {
+.export-header {
   text-align: center;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 2;
 }
 
-.export-info h4 {
-  font-size: 1.25rem;
+.document-info h4 {
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 0.5rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-family: inherit;
 }
 
-.export-info p {
-  color: #4a5568;
+.risk-display {
+  margin: 1rem 0;
+}
+
+.export-description {
+  color: #64748b;
   font-size: 0.9rem;
+  font-family: inherit;
 }
 
 .export-options,
 .export-sections {
   margin-bottom: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  position: relative;
 }
 
 .export-options h5,
 .export-sections h5 {
   font-size: 1rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1e293b;
   margin-bottom: 1rem;
+  font-family: inherit;
 }
 
 .format-options,
@@ -45,22 +63,25 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  background: white;
+  position: relative;
 }
 
 .format-option:hover,
 .section-option:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: #3b82f6;
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
 .format-option.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .format-option input[type="radio"],
@@ -68,7 +89,7 @@
   margin: 0;
   width: 18px;
   height: 18px;
-  accent-color: #667eea;
+  accent-color: #3b82f6;
 }
 
 .format-content,
@@ -89,16 +110,18 @@
   display: block;
   font-size: 1rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1e293b;
   margin-bottom: 0.25rem;
+  font-family: inherit;
 }
 
 .format-content p,
 .section-content p {
   font-size: 0.875rem;
-  color: #4a5568;
+  color: #64748b;
   margin: 0;
   line-height: 1.4;
+  font-family: inherit;
 }
 
 .export-actions {
@@ -106,56 +129,20 @@
   justify-content: flex-end;
   gap: 1rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #e2e8f0;
+  position: relative;
 }
 
-/* Dark mode styles */
-.dark .export-info h4 {
-  color: #f1f5f9;
-}
-
-.dark .export-info p {
-  color: #cbd5e1;
-}
-
-.dark .export-options h5,
-.dark .export-sections h5 {
-  color: #f1f5f9;
-}
-
-.dark .format-option,
-.dark .section-option {
-  background: rgba(30, 41, 59, 0.5);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .format-option:hover,
-.dark .section-option:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.dark .format-option.selected {
-  background: rgba(102, 126, 234, 0.15);
-}
-
-.dark .format-content strong,
-.dark .section-content strong {
-  color: #f1f5f9;
-}
-
-.dark .format-content p,
-.dark .section-content p {
-  color: #cbd5e1;
-}
+/* Removed Matrix animations for professional appearance */
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .export-modal {
-    min-height: 400px;
+    min-height: 500px;
   }
 
-  .export-info h4 {
-    font-size: 1.1rem;
+  .document-info h4 {
+    font-size: 1.2rem;
   }
 
   .format-content,
@@ -174,6 +161,7 @@
 
   .export-actions button {
     width: 100%;
+    font-family: inherit;
   }
 }
 
@@ -191,5 +179,9 @@
   .format-content p,
   .section-content p {
     font-size: 0.8rem;
+  }
+
+  .document-info h4 {
+    font-size: 1rem;
   }
 }

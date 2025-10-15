@@ -107,7 +107,11 @@ def extract_text_with_ocr(pdf_path: str) -> str:
     except Exception as e:
         return f"OCR processing failed: {str(e)}"
 
-GEMINI_API_KEY = 'AIzaSyDjapEEQzyllnX7yIeLfXjWcfRxrS96eHc'
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+if not GEMINI_API_KEY:
+    logging.error("GEMINI_API_KEY environment variable is not set!")
+    raise ValueError("GEMINI_API_KEY environment variable is required")
+
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
 async def send_message(prompt: str) -> str:
@@ -352,6 +356,18 @@ async def analyze_document(document_id: str):
             sync_client.close()
             raise HTTPException(status_code=404, detail="Document not found")
 
+        # Check if analysis already completed
+        if document.get('analysis_status') == 'completed' and document.get('summary'):
+            sync_client.close()
+            logging.info(f"Returning cached analysis for document {document_id}")
+            return {
+                "document_id": document_id,
+                "status": "completed",
+                "summary": document.get('summary', ''),
+                "key_clauses": document.get('key_clauses', []),
+                "risk_assessment": document.get('risk_assessment', '')
+            }
+
         # Update status to processing
         sync_db.documents.update_one(
             {"id": document_id},
@@ -429,64 +445,88 @@ async def analyze_document(document_id: str):
         # Prepare analysis prompt with document content
         if len(document_text.strip()) < 200 or "Error reading document" in document_text or "Failed to extract text" in document_text or "Document appears to be too short" in document_text:
             # If document content is too short, contains error messages, or is not meaningful legal content
-            analysis_prompt = f"""I need you to provide a legal document analysis, but the document content could not be properly extracted or is insufficient for detailed analysis. This may be due to file format limitations, reading errors, or the document being too short.
-
-Document type: {document['file_type']}
-Document content length: {len(document_text.strip())} characters
-Content preview: {document_text[:200]}
-
-Please provide a general analysis framework for legal documents of this type:
-
-## 📋 EXECUTIVE SUMMARY
-Explain what types of information would typically be found in {document['file_type']} documents and their general purpose.
-
-## 🔑 KEY CLAUSES
-Describe the types of clauses that are commonly found in {document['file_type']} documents, including what each typically covers.
-
-## ⚠️ RISK ASSESSMENT
-Discuss general risks and considerations when reviewing {document['file_type']} documents.
-
-## 📖 PLAIN ENGLISH EXPLANATION
-Provide guidance on what to look for when reviewing this type of legal document and why professional legal review is recommended.
-
-Use the exact section headers shown above with emojis. Keep the response professional and helpful."""
+            analysis_prompt = """I need you to provide a legal document analysis, but the document content could not be properly extracted or is insufficient for detailed analysis. This may be due to file format limitations, reading errors, or the document being too short."""
         else:
             # If we have meaningful document content, analyze it specifically
-            analysis_prompt = f"""You are a legal document analysis expert. Below is the content of a legal document that I need you to analyze thoroughly.
+            analysis_prompt = f"""You are a senior legal document analysis expert with 20+ years of experience reviewing contracts and legal agreements. Below is the content of a legal document that requires thorough professional analysis.
 
 DOCUMENT CONTENT TO ANALYZE:
 {document_text[:12000]}
 
-IMPORTANT: Base your entire analysis on the specific content provided above. Do not provide generic legal advice - analyze THIS document's actual content.
+CRITICAL REQUIREMENTS:
+- Base your ENTIRE analysis on the specific content provided above
+- Do NOT provide generic legal advice or templates
+- Reference specific text, terms, and clauses from THIS document
+- Be precise, professional, and actionable in your analysis
 
 ANALYSIS REQUEST:
-Provide a structured analysis with these exact section headers:
+Provide a comprehensive structured analysis with these exact section headers:
 
-## 📋 EXECUTIVE SUMMARY
-Provide a clear, concise summary of what THIS SPECIFIC document is about and its main purpose, based on the content above.
+EXECUTIVE SUMMARY
+Provide a detailed executive summary that includes:
+- Document Type & Purpose: What kind of legal document this is and its primary objective
+- Key Parties Involved: Who are the main parties and their roles
+- Core Obligations: The fundamental commitments and responsibilities outlined
+- Critical Timeline: Any important dates, deadlines, or time-sensitive provisions
+- Financial Implications: Any monetary amounts, payment terms, or financial commitments mentioned
+- Overall Risk Level: High-level assessment of potential risks (Low/Medium/High)
 
-## 🔑 KEY CLAUSES
-Identify the 5 most important clauses or sections from THIS document's content and explain each in plain English:
-- **Clause Name**: What it means (based on the actual text)
-- **Importance**: Why it's important for this document
-- **Obligations/Rights**: What obligations or rights it creates
+KEY CLAUSES ANALYSIS
+Identify and analyze the 7 most critical clauses or provisions from THIS document's content. For each clause, provide:
 
-## ⚠️ RISK ASSESSMENT
-Based on THIS document's content, highlight any potential risks, unfavorable terms, or red flags that the user should be aware of.
+1. Exact Clause Reference: Quote the specific section/clause number or title from the document
+2. Plain English Explanation: What this clause means in simple, understandable terms
+3. Legal Implications: What rights, obligations, or restrictions it creates
+4. Business Impact: How this affects the parties' relationship or operations
+5. Potential Concerns: Any ambiguities, one-sided terms, or areas requiring attention
 
-## 📖 PLAIN ENGLISH EXPLANATION
-Translate the complex legal language from THIS document into simple, understandable terms.
+Format each clause as a numbered item with clear subheadings.
+
+RISK ASSESSMENT
+Conduct a thorough risk analysis covering:
+
+HIGH-RISK ISSUES
+- Terms that could cause significant financial loss or legal liability
+- Unfavorable or one-sided provisions that disadvantage one party
+- Ambiguous language that could lead to disputes
+- Missing protections or standard clauses that should be present
+
+MEDIUM-RISK CONCERNS
+- Terms that could create operational difficulties
+- Provisions requiring ongoing compliance or monitoring
+- Clauses with conditional obligations that depend on external factors
+
+LOW-RISK ITEMS
+- Standard boilerplate provisions
+- Clearly defined, balanced terms
+- Protective clauses that benefit both parties
+
+RECOMMENDATIONS
+- Specific actions to mitigate identified risks
+- Suggested modifications or negotiations points
+- Professional review recommendations
+
+PLAIN ENGLISH EXPLANATION
+Transform the complex legal language into clear, accessible explanations:
+
+What This Document Does: Simple overview of the agreement's purpose and effect
+What Each Party Must Do: Clear list of obligations for each party involved
+What Happens If Things Go Wrong: Consequences of breach or default
+Important Dates & Deadlines: Timeline of key events and requirements
+Money Matters: All financial terms explained in plain language
+Key Rights & Protections: What each party can and cannot do
+How to Get Out: Termination, cancellation, or exit provisions
 
 FORMATTING REQUIREMENTS:
-- Use the exact section headers shown above with emojis
+- Use clear, professional formatting with proper spacing and structure
 - Use markdown formatting for better readability (bold, italics, lists, etc.)
-- Include relevant emojis where appropriate to make sections more engaging
-- Ensure all special characters and formatting are properly supported
-- Make the summary, key clauses, and risk assessment sections particularly polished and professional
-- Format lists and bullet points nicely
-- Avoid any unwanted numbering or formatting artifacts
-
-Make sure every point you make is directly supported by the document content provided above."""
+- Ensure consistent spacing between sections and subsections
+- Make the analysis comprehensive yet accessible to non-lawyers
+- Format lists and bullet points professionally
+- Use clear headings and subheadings for easy navigation
+- Do not use emojis or special characters in headings - use plain text only
+- Ensure every conclusion is directly supported by the document content
+- Provide well-phrased, clear explanations with good grammar and structure"""
 
         try:
             logging.info("Starting AI analysis call")
@@ -500,12 +540,11 @@ Make sure every point you make is directly supported by the document content pro
 
             import re
             # Parse sections using regex for more robust extraction
-            # The AI is generating emoji sections like ## ⚠️ RISK ASSESSMENT, ## 🔑 KEY CLAUSES, etc.
 
             # Extract executive summary
             summary = ""
             try:
-                summary_match = re.search(r"## 📋 EXECUTIVE SUMMARY(.*?)(?=## 🔑 KEY CLAUSES|$)", analysis_text, re.DOTALL)
+                summary_match = re.search(r"EXECUTIVE SUMMARY(.*?)(?=KEY CLAUSES ANALYSIS|$)", analysis_text, re.DOTALL)
                 if summary_match:
                     summary = summary_match.group(1).strip()
                 else:
@@ -514,21 +553,37 @@ Make sure every point you make is directly supported by the document content pro
                 logging.error(f"Error parsing executive summary section with regex: {str(e)}")
                 summary = ""
 
+            # Extract and parse key clauses
             key_clauses = []
             try:
-                key_clauses_match = re.search(r"## 🔑 KEY CLAUSES(.*?)(?=## ⚠️ RISK ASSESSMENT|## 📖 PLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
+                key_clauses_match = re.search(r"KEY CLAUSES ANALYSIS(.*?)(?=RISK ASSESSMENT|$)", analysis_text, re.DOTALL)
                 if key_clauses_match:
                     clauses_section = key_clauses_match.group(1).strip()
-                    key_clauses = [{"clause": "Key Clauses Analysis", "explanation": clauses_section}]
+                    # Parse individual clauses (numbered 1-7)
+                    clause_pattern = r"(\d+)\.\s*(.*?)(?=\d+\.|$)"
+                    matches = re.findall(clause_pattern, clauses_section, re.DOTALL)
+                    for match in matches[:7]:  # Limit to 7 clauses
+                        clause_num, clause_content = match
+                        # Parse sub-components within each clause
+                        sub_parts = re.split(r'\n\s*(?:[A-Z][a-zA-Z\s]+:)', clause_content)
+                        if len(sub_parts) >= 2:
+                            key_clauses.append({
+                                "clause_number": int(clause_num),
+                                "reference": sub_parts[1].strip() if len(sub_parts) > 1 else "",
+                                "explanation": sub_parts[2].strip() if len(sub_parts) > 2 else "",
+                                "implications": sub_parts[3].strip() if len(sub_parts) > 3 else "",
+                                "impact": sub_parts[4].strip() if len(sub_parts) > 4 else "",
+                                "concerns": sub_parts[5].strip() if len(sub_parts) > 5 else ""
+                            })
                 else:
-                    logging.warning("KEY CLAUSES section not found in analysis text")
+                    logging.warning("KEY CLAUSES ANALYSIS section not found in analysis text")
             except Exception as e:
                 logging.error(f"Error parsing key clauses section with regex: {str(e)}")
                 key_clauses = []
 
             risk_assessment = ""
             try:
-                risk_match = re.search(r"## ⚠️ RISK ASSESSMENT(.*?)(?=## 📖 PLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
+                risk_match = re.search(r"RISK ASSESSMENT(.*?)(?=PLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
                 if risk_match:
                     risk_assessment = risk_match.group(1).strip()
                 else:
@@ -552,7 +607,7 @@ Make sure every point you make is directly supported by the document content pro
             {"id": document_id},
             {"$set": {
                 "analysis_status": "completed",
-                "summary": analysis_text,
+                "summary": summary,
                 "key_clauses": key_clauses,
                 "risk_assessment": risk_assessment.strip()
             }}
@@ -562,7 +617,7 @@ Make sure every point you make is directly supported by the document content pro
         return {
             "document_id": document_id,
             "status": "completed",
-            "summary": analysis_text,
+            "summary": summary,
             "key_clauses": key_clauses,
             "risk_assessment": risk_assessment.strip()
         }

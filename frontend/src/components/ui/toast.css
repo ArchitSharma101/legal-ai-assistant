@@ -10,12 +10,11 @@
 }
 
 .toast {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
+  background: white;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
   animation: slideInRight 0.3s ease-out;
   display: flex;
   align-items: flex-start;
@@ -32,23 +31,23 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: #667eea;
+  background: #3b82f6;
 }
 
 .toast-success::before {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #10b981;
 }
 
 .toast-error::before {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+  background: #ef4444;
 }
 
 .toast-warning::before {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #f59e0b;
 }
 
 .toast-info::before {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
 }
 
 .toast-content {
@@ -70,13 +69,14 @@
 
 .toast-title {
   font-weight: 600;
-  color: #1a202c;
+  color: #1e293b;
   margin-bottom: 4px;
   font-size: 14px;
+  font-family: inherit;
 }
 
 .toast-description {
-  color: #4a5568;
+  color: #64748b;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -85,7 +85,7 @@
   background: none;
   border: none;
   font-size: 20px;
-  color: #a0aec0;
+  color: #64748b;
   cursor: pointer;
   padding: 0;
   width: 24px;
@@ -99,8 +99,8 @@
 }
 
 .toast-close:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #2d3748;
+  background: #f8fafc;
+  color: #1e293b;
 }
 
 @keyframes slideInRight {
@@ -131,8 +131,8 @@
 
 /* Dark mode styles */
 .dark .toast {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #1e293b;
+  border-color: #374151;
 }
 
 .dark .toast-title {
@@ -144,11 +144,11 @@
 }
 
 .dark .toast-close {
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .dark .toast-close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: #334155;
   color: #f1f5f9;
 }
 

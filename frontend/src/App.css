@@ -5,11 +5,11 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'sans-serif';
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background: #f8fafc;
   min-height: 100vh;
-  color: #333;
+  color: #1e293b;
+  line-height: 1.6;
 }
 
 .App {
@@ -20,24 +20,23 @@ body {
 
 /* Header Styles */
 .app-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   padding: 2rem 0;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .header-content h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #2d3748;
+  color: #1e293b;
   margin-bottom: 0.5rem;
 }
 
 .header-content p {
   font-size: 1.1rem;
-  color: #718096;
+  color: #64748b;
   font-weight: 400;
 }
 
@@ -89,9 +88,9 @@ body {
 }
 
 .upload-area {
-  background: rgba(255, 255, 255, 0.95);
-  border: 3px dashed #cbd5e0;
-  border-radius: 20px;
+  background: #ffffff;
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
   padding: 3rem;
   text-align: center;
   cursor: pointer;
@@ -99,46 +98,47 @@ body {
   position: relative;
   max-width: 500px;
   width: 100%;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .upload-area:hover {
-  border-color: #667eea;
-  background: rgba(255, 255, 255, 1);
+  border-color: #3b82f6;
+  background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .upload-area.drag-active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  background: #eff6ff;
 }
 
 .upload-area.uploading {
-  border-color: #48bb78;
+  border-color: #10b981;
   pointer-events: none;
 }
 
 .upload-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  color: #64748b;
 }
 
 .upload-area h3 {
   font-size: 1.5rem;
-  color: #2d3748;
+  color: #1e293b;
   margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
 .upload-area p {
-  color: #718096;
+  color: #64748b;
   margin-bottom: 0.5rem;
 }
 
 .file-types {
   font-size: 0.9rem;
-  color: #a0aec0;
+  color: #94a3b8;
 }
 
 .file-input {
@@ -157,11 +157,11 @@ body {
 
 /* Dashboard Styles */
 .dashboard {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: #ffffff;
+  border-radius: 12px;
   padding: 2rem;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .dashboard-header {
@@ -175,24 +175,25 @@ body {
 
 .dashboard-header h2 {
   font-size: 1.8rem;
-  color: #2d3748;
+  color: #1e293b;
   font-weight: 600;
 }
 
 .upload-new-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1e40af;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .upload-new-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
 }
 
 /* Empty State */
@@ -204,35 +205,37 @@ body {
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  color: #cbd5e0;
 }
 
 .empty-state h3 {
   font-size: 1.5rem;
-  color: #2d3748;
+  color: #1e293b;
   margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
 .empty-state p {
-  color: #718096;
+  color: #64748b;
   margin-bottom: 2rem;
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1e40af;
   color: white;
   border: none;
   padding: 1rem 2rem;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .primary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
 }
 
 /* Documents Grid */
@@ -259,13 +262,13 @@ body {
 .document-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  border-color: #3b82f6;
 }
 
 .document-card.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .document-icon {
@@ -295,47 +298,34 @@ body {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #dc2626;
   color: white;
   border: none;
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0.3rem 0.8rem;
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
   font-weight: 600;
   z-index: 10;
-  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
   opacity: 1;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   user-select: none;
-  backdrop-filter: blur(6px);
 }
 
 .delete-btn:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-  box-shadow: 0 12px 20px rgba(118, 75, 162, 0.6);
-  transform: translateY(-3px);
+  background: #b91c1c;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+  transform: translateY(-1px);
   opacity: 1;
 }
 
 .delete-btn:active {
   transform: translateY(0);
-  box-shadow: 0 6px 10px rgba(118, 75, 162, 0.4);
-}
-
-.delete-btn:hover {
-  background-color: #c53030;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(197, 48, 48, 0.7);
-  opacity: 1;
-}
-
-.delete-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 3px 6px rgba(197, 48, 48, 0.5);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
 
 .upload-date {
@@ -449,8 +439,8 @@ body {
 }
 
 .tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 
 /* Tab Content */
@@ -493,11 +483,11 @@ body {
   background: #f7fafc;
   padding: 1.5rem;
   border-radius: 12px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #3b82f6;
 }
 
 .section-header {
-  color: #667eea;
+  color: #3b82f6;
   font-weight: 600;
   margin: 1.5rem 0 1rem 0;
   font-size: 1.1rem;
@@ -553,24 +543,26 @@ body {
 
 .question-input textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
 }
 
 .ask-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1e40af;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
 }
 
 .ask-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(30, 64, 175, 0.3);
 }
 
 .ask-btn:disabled {
@@ -603,7 +595,7 @@ body {
 }
 
 .question strong, .answer strong {
-  color: #667eea;
+  color: #3b82f6;
 }
 
 /* No Analysis State */
@@ -614,20 +606,22 @@ body {
 }
 
 .analyze-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1e40af;
   color: white;
   border: none;
   padding: 1rem 2rem;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
 }
 
 .analyze-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(30, 64, 175, 0.3);
 }
 
 /* Responsive Design */

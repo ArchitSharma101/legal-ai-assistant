@@ -1,0 +1,127 @@
+.risk-meter {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.risk-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-family: inherit;
+}
+
+.risk-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.risk-percentage {
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: inherit;
+}
+
+.risk-meter-bar {
+  position: relative;
+  height: 30px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.risk-meter-fill {
+  height: 100%;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border-radius: 2px;
+  background: #3b82f6;
+}
+
+.risk-meter-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+.grid-line {
+  flex: 1;
+  border-right: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.grid-line:last-child {
+  border-right: none;
+}
+
+.risk-levels {
+  display: flex;
+  justify-content: space-between;
+  font-family: inherit;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+.level {
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-weight: bold;
+}
+
+.level.low {
+  color: #10b981;
+}
+
+.level.medium {
+  color: #f59e0b;
+}
+
+.level.high {
+  color: #ef4444;
+}
+
+/* Removed matrix effect for professional appearance */
+
+/* Removed Matrix animations for professional appearance */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .risk-meter {
+    padding: 15px;
+  }
+
+  .risk-meter-header {
+    margin-bottom: 10px;
+  }
+
+  .risk-label {
+    font-size: 10px;
+  }
+
+  .risk-percentage {
+    font-size: 16px;
+  }
+
+  .risk-meter-bar {
+    height: 25px;
+  }
+
+  .risk-levels {
+    font-size: 9px;
+  }
+}

@@ -14,8 +14,8 @@
 
 .loading-ring {
   position: absolute;
-  border: 3px solid rgba(102, 126, 234, 0.2);
-  border-top: 3px solid #667eea;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #3b82f6;
   border-radius: 50%;
   animation: spin 1.5s linear infinite;
 }
@@ -72,11 +72,12 @@
 }
 
 .loading-text {
-  color: #4a5568;
+  color: #64748b;
   font-size: 0.9rem;
   font-weight: 500;
   margin: 0;
   text-align: center;
+  font-family: inherit;
 }
 
 .loading-overlay {
@@ -85,8 +86,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,10 +94,11 @@
 }
 
 .loading-skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
   background-size: 200% 100%;
   animation: loading-shimmer 1.5s infinite;
   border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .loading-skeleton-lines {
@@ -130,11 +131,12 @@
 }
 
 .dark .loading-overlay {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .dark .loading-skeleton {
-  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+  border-color: #475569;
 }
 
 /* Mobile responsive */

@@ -124,6 +124,55 @@ const DocumentUpload = ({ onUploadSuccess, onProgress, onToast }) => {
   );
 };
 
+const RiskHeading = ({ children }) => {
+          // Base styles for all boxes
+          const baseStyle = {
+            display: 'inline-block',
+            fontSize: '0.9rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginTop: '24px',
+            marginBottom: '12px',
+            padding: '6px 14px',
+            borderRadius: '7px',
+          };
+
+          // Specific styles for each risk level
+          const highRiskStyle = {
+            backgroundColor: '#fee2e2',
+            color: '#b91c1c',
+          };
+          const mediumRiskStyle = {
+            backgroundColor: '#ffedd5',
+            color: '#9a3412',
+          };
+          const lowRiskStyle = {
+            backgroundColor: '#dcfce7',
+            color: '#166534',
+          };
+          
+          // Default style is the base style
+          let finalStyle = baseStyle;
+          const headingText = String(children).toUpperCase();
+
+          // Determine which color style to merge with the base style
+          if (headingText.includes('HIGH-RISK') || headingText.includes('CRITICAL')) {
+            finalStyle = { ...baseStyle, ...highRiskStyle };
+          } else if (headingText.includes('MEDIUM-RISK') || headingText.includes('MODERATE')) {
+            finalStyle = { ...baseStyle, ...mediumRiskStyle };
+          } else if (headingText.includes('LOW-RISK')) {
+            finalStyle = { ...baseStyle, ...lowRiskStyle };
+          }
+
+          // Apply the final, merged style object directly to the element
+          return (
+            <h4 style={finalStyle}>
+              {children}
+            </h4>
+          );
+        };
+
 // Document Analysis Component
 const DocumentAnalysis = ({ document, onBack }) => {
   const [analysis, setAnalysis] = useState(null);
@@ -281,7 +330,7 @@ const DocumentAnalysis = ({ document, onBack }) => {
               </div>
             )}
             
-            {activeTab === 'clauses' && (
+   {activeTab === 'clauses' && (
               <div className="clauses-section" style={{ marginBottom: '20px' }}>
                 {analysis.key_clauses.length > 0 ? (
                   <div className="clauses-list">
@@ -317,9 +366,9 @@ const DocumentAnalysis = ({ document, onBack }) => {
             )}
 
             {activeTab === 'risks' && (
-              <div className="risks-section" style={{ marginBottom: '20px' }}>
+              <div className="risks-section">
                 <div className="risk-content">
-                  <div className="risk-overview" style={{ marginBottom: '15px' }}>
+                  <div className="risk-overview">
                     <RiskMeter riskLevel={getRiskLevel()} />
                     <div className="risk-summary">
                       <div className="risk-level-indicator">
@@ -336,16 +385,23 @@ const DocumentAnalysis = ({ document, onBack }) => {
                   </div>
                   <div className="risk-details">
                     {analysis.risk_assessment ? (
-                      <ReactMarkdown components={{
-                        h4: ({children}) => <div className="risk-subheader">{children}</div>,
-                        p: ({children}) => <div className="risk-text">{children}</div>,
-                        strong: ({children}) => <span className="risk-highlight">{children}</span>,
-                        ul: ({children}) => <div className="risk-list">{children}</div>,
-                        li: ({children}) => <div className="risk-list-item">{children}</div>
-                      }}>{analysis.risk_assessment}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          // This uses the new inline-styled RiskHeading component
+                          h4: RiskHeading,
+                          
+                          // These continue to use your existing CSS classes
+                          p: ({ children }) => <div className="risk-head">{children}</div>,
+                          strong: ({ children }) => <span className="risk-highlight">{children}</span>,
+                          ul: ({ children }) => <ul className="risk-list">{children}</ul>,
+                          li: ({ children }) => <li className="risk-list-item">{children}</li>
+                        }}
+                      >
+                        {analysis.risk_assessment}
+                      </ReactMarkdown>
                     ) : (
                       <div className="no-risks">
-                        <div className="no-risks-icon">No Risks</div>
+                        <div className="no-risks-icon">✅</div>
                         <p>No specific risks identified in this document.</p>
                         <span className="no-risks-note">However, we recommend consulting with legal professionals for comprehensive review.</span>
                       </div>
@@ -354,6 +410,7 @@ const DocumentAnalysis = ({ document, onBack }) => {
                 </div>
               </div>
             )}
+
             
             {activeTab === 'qa' && (
               <div className="qa-section" style={{ marginBottom: '20px' }}>

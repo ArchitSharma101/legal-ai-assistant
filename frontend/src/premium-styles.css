@@ -1149,19 +1149,18 @@ body {
   margin: 0;
 }
 
-.risk-subheader {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--corporate-primary);
-  margin: 1.5rem 0 0.5rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--corporate-border);
-}
-
 .risk-text {
   margin-bottom: 0.75rem;
   color: var(--corporate-text-secondary);
   line-height: 1.6;
+}
+
+.risk-head {
+  color: var(--corporate-primary);
+  font-weight: 600;
+  background: rgba(215, 38, 38, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
 }
 
 .risk-highlight {
@@ -1209,7 +1208,6 @@ body {
   font-style: italic;
 }
 
-/* Export Button Styles */
 .export-section {
   margin-top: 2rem;
   padding-top: 1.5rem;

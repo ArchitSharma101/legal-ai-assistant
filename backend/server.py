@@ -78,8 +78,6 @@ class Document(BaseModel):
     summary: Optional[str] = None
     key_clauses: Optional[List[dict]] = None
     risk_assessment: Optional[str] = None
-    recommendations: Optional[str] = None
-    plain_english_explanation: Optional[str] = None
 
 class DocumentCreate(BaseModel):
     filename: str
@@ -248,7 +246,6 @@ async def upload_document(file: UploadFile = File(...)):
             
         except Exception as e:
             logging.error(f"Error saving file: {str(e)}")
-            # Clean up the file if it was created but there was a database error
             if file_path.exists():
                 try:
                     file_path.unlink()
@@ -455,10 +452,10 @@ async def analyze_document(document_id: str):
             analysis_prompt = """I need you to provide a legal document analysis, but the document content could not be properly extracted or is insufficient for detailed analysis. This may be due to file format limitations, reading errors, or the document being too short."""
         else:
             # If we have meaningful document content, analyze it specifically
-            analysis_prompt = f"""You are a senior legal document analysis expert with 20+ years of experience reviewing contracts and legal agreements. Below is the content of a legal document that requires thorough professional analysis.
+            analysis_prompt = f"""You are a senior legal document analysis expert with 4000+ years of experience reviewing contracts and legal agreements. Below is the content of a legal document that requires thorough professional analysis.
 
 DOCUMENT CONTENT TO ANALYZE:
-{document_text[:12000]}
+{document_text[:999999999]}
 
 CRITICAL REQUIREMENTS:
 - Base your ENTIRE analysis on the specific content provided above
@@ -479,7 +476,7 @@ Provide a detailed executive summary that includes:
 - Overall Risk Level: High-level assessment of potential risks (Low/Medium/High)
 
 KEY CLAUSES ANALYSIS
-Identify and analyze the 7 most critical clauses or provisions from THIS document's content. For each clause, provide:
+Identify and analyze the most critical clauses or provisions from THIS document's content. For each clause, provide:
 
 1. Exact Clause Reference: Quote the specific section/clause number or title from the document
 2. Plain English Explanation: What this clause means in simple, understandable terms
@@ -508,22 +505,6 @@ LOW-RISK ITEMS
 - Clearly defined, balanced terms
 - Protective clauses that benefit both parties
 
-RECOMMENDATIONS
-- Specific actions to mitigate identified risks
-- Suggested modifications or negotiations points
-- Professional review recommendations
-
-PLAIN ENGLISH EXPLANATION
-Transform the complex legal language into clear, accessible explanations:
-
-What This Document Does: Simple overview of the agreement's purpose and effect
-What Each Party Must Do: Clear list of obligations for each party involved
-What Happens If Things Go Wrong: Consequences of breach or default
-Important Dates & Deadlines: Timeline of key events and requirements
-Money Matters: All financial terms explained in plain language
-Key Rights & Protections: What each party can and cannot do
-How to Get Out: Termination, cancellation, or exit provisions
-
 FORMATTING REQUIREMENTS:
 - Use clear, professional formatting with proper spacing and structure
 - Use markdown formatting for better readability (bold, italics, lists, etc.)
@@ -534,7 +515,8 @@ FORMATTING REQUIREMENTS:
 - Do not use emojis or special characters in headings - use plain text only
 - Ensure every conclusion is directly supported by the document content
 - Provide well-phrased, clear explanations with good grammar and structure
-- Use proper line breaks and spacing between sections for readability"""
+- Use proper line breaks and spacing between sections for readability
+- IMPORTANT: Do not include any RECOMMENDATIONS or PLAIN ENGLISH EXPLANATION sections in your response"""
 
         try:
             logging.info("Starting AI analysis call")
@@ -549,10 +531,14 @@ FORMATTING REQUIREMENTS:
             import re
             # Parse sections using regex for more robust extraction
 
-            # Extract executive summary
+            # Extract executive summary - handle both emoji and plain formats
             summary = ""
             try:
-                summary_match = re.search(r"EXECUTIVE SUMMARY\s*\n(.*?)(?=\nKEY CLAUSES ANALYSIS|$)", analysis_text, re.DOTALL)
+                # Try emoji format first (cached responses)
+                summary_match = re.search(r"## EXECUTIVE SUMMARY\s*\n(.*?)(?=\n## KEY CLAUSES|$)", analysis_text, re.DOTALL)
+                if not summary_match:
+                    # Try plain format (new responses)
+                    summary_match = re.search(r"EXECUTIVE SUMMARY\s*\n(.*?)(?=\nKEY CLAUSES ANALYSIS|$)", analysis_text, re.DOTALL)
                 if summary_match:
                     summary = summary_match.group(1).strip()
                 else:
@@ -561,74 +547,91 @@ FORMATTING REQUIREMENTS:
                 logging.error(f"Error parsing executive summary section with regex: {str(e)}")
                 summary = ""
 
-            # Extract and parse key clauses
+            # Extract and parse key clauses - handle both formats
             key_clauses = []
             try:
-                key_clauses_match = re.search(r"KEY CLAUSES ANALYSIS\s*\n(.*?)(?=\nRISK ASSESSMENT|$)", analysis_text, re.DOTALL)
+                key_clauses_match = re.search(r"##KEY CLAUSES\s*\n(.*?)(?=\n##RISK ASSESSMENT|$)", analysis_text, re.DOTALL)
+                if not key_clauses_match:
+                    # Try plain format
+                    key_clauses_match = re.search(r"KEY CLAUSES ANALYSIS\s*\n(.*?)(?=\nRISK ASSESSMENT|$)", analysis_text, re.DOTALL)
+
                 if key_clauses_match:
                     clauses_section = key_clauses_match.group(1).strip()
                     # Parse individual clauses (numbered 1-7)
-                    # Look for patterns like "1. Clause Title" or "1. Exact Clause Reference:"
+                    # Look for patterns like "1. Clause Title" or "- **Clause Name**: *Payment Terms*"
                     clause_pattern = r"(\d+)\.\s*(.*?)(?=\n\d+\.|$)"
                     matches = re.findall(clause_pattern, clauses_section, re.DOTALL)
+
+                    # If no numbered clauses, try markdown format
+                    if not matches:
+                        clause_pattern = r"-\s*\*\*Clause Name\*\*:\s*\*(.*?)\*\s*\n\s*(.*?)(?=-\s*\*\*Clause Name\*\*|$)"
+                        matches = re.findall(clause_pattern, clauses_section, re.DOTALL)
+
                     for match in matches[:7]:  # Limit to 7 clauses
-                        clause_num, clause_content = match
-                        # Parse sub-components within each clause
-                        # Look for patterns like "Exact Clause Reference:", "Plain English Explanation:", etc.
-                        sub_patterns = {
-                            "reference": r"Exact Clause Reference:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
-                            "explanation": r"Plain English Explanation:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
-                            "implications": r"Legal Implications:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
-                            "impact": r"Business Impact:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
-                            "concerns": r"Potential Concerns:\s*(.*?)(?=\n\d+\.|$)"
-                        }
+                        if len(match) == 2:
+                            clause_num_or_name, clause_content = match
+                            if clause_num_or_name.isdigit():
+                                clause_data = {"clause_number": int(clause_num_or_name)}
+                                # Parse sub-components within each clause
+                                sub_patterns = {
+                                    "reference": r"Exact Clause Reference:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                                    "explanation": r"Plain English Explanation:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                                    "implications": r"Legal Implications:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                                    "impact": r"Business Impact:\s*(.*?)(?=\n[A-Z][a-zA-Z\s]+:|$)",
+                                    "concerns": r"Potential Concerns:\s*(.*?)(?=\n\d+\.|$)"
+                                }
+                            else:
+                                # Markdown format
+                                clause_data = {"clause_number": len(key_clauses) + 1, "reference": clause_num_or_name}
+                                # Parse sub-components for markdown format
+                                sub_patterns = {
+                                    "explanation": r"-\s*\*\*What it means\*\*:\s*(.*?)(?=\n\s*-\s*\*\*[A-Z]|$)",
+                                    "implications": r"-\s*\*\*Obligations/Rights\*\*:\s*(.*?)(?=\n\s*-\s*\*\*[A-Z]|$)",
+                                    "impact": r"-\s*\*\*Importance\*\*:\s*(.*?)(?=\n\s*-\s*\*\*[A-Z]|$)",
+                                    "concerns": r"-\s*\*\*Importance\*\*:\s*(.*?)(?=\n\s*-\s*\*\*[A-Z]|$)"
+                                }
 
-                        clause_data = {"clause_number": int(clause_num)}
-                        for field, pattern in sub_patterns.items():
-                            field_match = re.search(pattern, clause_content, re.DOTALL)
-                            clause_data[field] = field_match.group(1).strip() if field_match else ""
+                            # For plain format, use more specific patterns with indentation handling
+                            sub_patterns = {
+                                "reference": r"Exact Clause Reference:\s*(.*?)(?=\n\s*Plain English Explanation:|$)",
+                                "explanation": r"Plain English Explanation:\s*(.*?)(?=\n\s*Legal Implications:|$)",
+                                "implications": r"Legal Implications:\s*(.*?)(?=\n\s*Business Impact:|$)",
+                                "impact": r"Business Impact:\s*(.*?)(?=\n\s*Potential Concerns:|$)",
+                                "concerns": r"Potential Concerns:\s*(.*?)(?=\n\d+\.|$)"
+                            }
 
-                        key_clauses.append(clause_data)
+                            for field, pattern in sub_patterns.items():
+                                field_match = re.search(pattern, clause_content, re.DOTALL)
+                                if field_match:
+                                    clause_data[field] = field_match.group(1).strip()
+                                else:
+                                    clause_data[field] = ""
+
+                            key_clauses.append(clause_data)
                 else:
-                    logging.warning("KEY CLAUSES ANALYSIS section not found in analysis text")
+                    logging.warning("KEY CLAUSES section not found in analysis text")
             except Exception as e:
                 logging.error(f"Error parsing key clauses section with regex: {str(e)}")
                 key_clauses = []
 
             risk_assessment = ""
             try:
-                risk_match = re.search(r"RISK ASSESSMENT\s*\n(.*?)(?=\nRECOMMENDATIONS|$)", analysis_text, re.DOTALL)
+     
+                risk_match = re.search(r"##RISK ASSESSMENT\s*\n(.*?)(?=\n##|$)", analysis_text, re.DOTALL)
+                if not risk_match:
+                    # Try plain format - capture until end of response since no other sections follow
+                    risk_match = re.search(r"RISK ASSESSMENT\s*\n(.*?)$", analysis_text, re.DOTALL)
                 if risk_match:
                     risk_assessment = risk_match.group(1).strip()
+                    # Clean up any extra whitespace and formatting
+                    risk_assessment = re.sub(r'\n\s*\n\s*\n', '\n\n', risk_assessment)
                 else:
                     logging.warning("RISK ASSESSMENT section not found in analysis text")
             except Exception as e:
                 logging.error(f"Error parsing risk assessment section with regex: {str(e)}")
                 risk_assessment = ""
 
-            # Extract recommendations
-            recommendations = ""
-            try:
-                recommendations_match = re.search(r"RECOMMENDATIONS\s*\n(.*?)(?=\nPLAIN ENGLISH EXPLANATION|$)", analysis_text, re.DOTALL)
-                if recommendations_match:
-                    recommendations = recommendations_match.group(1).strip()
-                else:
-                    logging.warning("RECOMMENDATIONS section not found in analysis text")
-            except Exception as e:
-                logging.error(f"Error parsing recommendations section with regex: {str(e)}")
-                recommendations = ""
 
-            # Extract plain english explanation
-            plain_english_explanation = ""
-            try:
-                plain_english_match = re.search(r"PLAIN ENGLISH EXPLANATION\s*\n(.*)", analysis_text, re.DOTALL)
-                if plain_english_match:
-                    plain_english_explanation = plain_english_match.group(1).strip()
-                else:
-                    logging.warning("PLAIN ENGLISH EXPLANATION section not found in analysis text")
-            except Exception as e:
-                logging.error(f"Error parsing plain english explanation section with regex: {str(e)}")
-                plain_english_explanation = ""
 
         except Exception as e:
             logging.error(f"Error during AI analysis: {str(e)}", exc_info=True)
@@ -647,9 +650,7 @@ FORMATTING REQUIREMENTS:
                 "analysis_status": "completed",
                 "summary": summary,
                 "key_clauses": key_clauses,
-                "risk_assessment": risk_assessment.strip(),
-                "recommendations": recommendations.strip(),
-                "plain_english_explanation": plain_english_explanation.strip()
+                "risk_assessment": risk_assessment.strip()
             }}
         )
         return {
@@ -657,9 +658,7 @@ FORMATTING REQUIREMENTS:
             "status": "completed",
             "summary": summary,
             "key_clauses": key_clauses,
-            "risk_assessment": risk_assessment.strip(),
-            "recommendations": recommendations.strip(),
-            "plain_english_explanation": plain_english_explanation.strip()
+            "risk_assessment": risk_assessment.strip()
         }
 
     except Exception as e:
@@ -752,7 +751,7 @@ Since I cannot access the specific document content, please provide general guid
             question_prompt = f"""You are a legal document analysis expert. Below is the content of a legal document. Please answer the specific question based ONLY on this document's content.
 
 DOCUMENT CONTENT:
-{document_text[:10000]}
+{document_text[:100000]}
 
 QUESTION: {request.question}
 
